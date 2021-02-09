@@ -16,7 +16,7 @@ class Server{
     boost::asio::ip::tcp::endpoint endpoint_;
     boost::asio::ip::tcp::acceptor acceptor_;
 
-    void handle_new_request(shared_connection connection,const boost::system::error_code &ec);
+    void handle_new_request(boost::system::error_code ec,shared_connection old_connection);
 
     public:
     explicit Server(unsigned short port);

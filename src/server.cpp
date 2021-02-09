@@ -35,17 +35,18 @@ void Server<Connection>::start(){
     }
 
     shared_connection connection = std::make_shared<Connection>(ioc_);
-    acceptor_.async_accept(connection->sock_,[=](system::error_code ec){
-        handle_new_request(connection,ec);
-    });
-
+    handle_new_request(ec,connection);
     io_thread_.join();
 }
 
 template <typename Connection>
-void Server<Connection>::handle_new_request(shared_connection connection, const system::error_code &ec){
+void Server<Connection>::handle_new_request(system::error_code ec,shared_connection old_connection){
     if(!ec){
-        connection->start_operation();
+        old_connection->start_operation();
+        shared_connection new_connection = std::make_shared<Connection>(ioc_);
+        acceptor_.async_accept(new_connection->sock_,[=](system::error_code ec){
+            handle_new_request(ec,new_connection);
+        });
     }else{
         error::print(ec);
         return;
