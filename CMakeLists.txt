@@ -9,19 +9,19 @@ set(include_files
 )
 
 set(src_files
-    ${CMAKE_SOURCE_DIR}/src/server.cpp
+    # ${CMAKE_SOURCE_DIR}/src/server.cpp
     ${CMAKE_SOURCE_DIR}/src/connection.cpp
 )
 
 add_executable(server main.cpp ${include_files} ${src_files})
 target_include_directories(server PUBLIC ${CMAKE_SOURCE_DIR}/includes)
+target_include_directories(server PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 #dependencies
 
 find_package(Threads REQUIRED)
 add_library(boost INTERFACE)
 if(APPLE)
-    message(STATUS "This is an apple system")
     target_include_directories(boost INTERFACE /usr/local/include)
 else()
     target_include_directories(boost INTERFACE /usr/include)

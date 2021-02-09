@@ -6,10 +6,13 @@
 using namespace boost;
 
 template <typename Connection>
-Server<Connection>::Server(unsigned short port) 
-    : acceptor_(ios_)
+Server<Connection>::Server(unsigned short port)
+    : acceptor_(ioc_)
+    , work_(ioc_)
     , port_(port)
-    , endpoint_(asio::ip::tcp::v4(), port) {}
+    , endpoint_(asio::ip::tcp::v4(), port) { 
+        io_thread_ = std::move(std::thread([&]{ ioc_.run();})); 
+    }
 
 template <typename Connection>
 void Server<Connection>::start(){
@@ -31,15 +34,18 @@ void Server<Connection>::start(){
         return;
     }
 
-    shared_connection connection = make_shared<Connection>();
-    acceptor_.async_accept(connection->sock_,[this, connection](system::error_code ec){
+    shared_connection connection = std::make_shared<Connection>(ioc_);
+    acceptor_.async_accept(connection->sock_,[=](system::error_code ec){
         handle_new_request(connection,ec);
     });
+
+    io_thread_.join();
 }
 
 template <typename Connection>
-void Server<Connection>::handle_new_request(shared_connection connection, system::error_code &ec){
+void Server<Connection>::handle_new_request(shared_connection connection, const system::error_code &ec){
     if(!ec){
+        connection->start_operation();
     }else{
         error::print(ec);
         return;
