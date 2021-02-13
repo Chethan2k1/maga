@@ -1,2 +1,7 @@
 build
 a.out
+
+# ide stuff
+.vscode
+.codelite
+*.workspace
