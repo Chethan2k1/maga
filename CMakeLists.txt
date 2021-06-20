@@ -19,6 +19,7 @@ set(src_files
     ${CMAKE_SOURCE_DIR}/src/header.cpp
 )
 
+add_definitions(-Wno-deprecated-declarations)
 add_executable(server main.cpp ${include_files} ${src_files})
 target_compile_options(server PUBLIC -Wall)
 target_include_directories(server PUBLIC ${CMAKE_SOURCE_DIR}/include)
@@ -27,9 +28,7 @@ target_include_directories(server PRIVATE ${CMAKE_SOURCE_DIR}/src)
 #dependencies
 
 ## magahttpparser
-find_library(MAGAHTTPPARSER mgparser HINTS "${MAGAHTTPPARSER_ROOT}/build" "${MAGAHTTPPARSER_LIB_DIR}")
-if(${MAGAHTTPPARSER} STREQUAL "MAGAHTTPPARSER-NOTFOUND")
-    message(STATUS "could not find magahttpparser")
+if(NOT DEFINED MAGAHTTPPARSER_ROOT)
     include(FetchContent)
     FetchContent_Declare(
         magahttpparser
@@ -41,16 +40,13 @@ if(${MAGAHTTPPARSER} STREQUAL "MAGAHTTPPARSER-NOTFOUND")
     if(NOT magahttpparser_POPULATED)
         FetchContent_Populate(magahttpparser)
         add_subdirectory("${magahttpparser_SOURCE_DIR}")
-        target_link_libraries(server PRIVATE magahttpparser)
-        target_include_directories(server PRIVATE "${magahttpparser_SOURCE_DIR}/include")
+        set(ENABLE_TEST OFF CACHE BOOL "Don't build target test" FORCE)
+        target_link_libraries(server PRIVATE mgparser)
     endif()
 else()
-    target_link_libraries(server PRIVATE ${MAGAHTTPPARSER})
-    if(DEFINED MAGAHTTPPARSER_ROOT)
-        target_include_directories(server PRIVATE "${MAGAHTTPPARSER_ROOT}/include")
-    else()
-        target_include_directories(server PRIVATE "${MAGAHTTPPARSER_INCLUDE_DIR}")
-    endif()
+    set(ENABLE_TEST OFF CACHE BOOL "Don't build target test" FORCE)
+    add_subdirectory(${MAGAHTTPPARSER_ROOT} ${CMAKE_BINARY_DIR}/magahttpparser)
+    target_link_libraries(server PRIVATE mgparser)
 endif()
 
 ## boost
@@ -72,7 +68,7 @@ set_target_properties(server PROPERTIES COMPILE_OPTIONS "-I ${BOOST_INCLUDE_DIR}
 file(GLOB_RECURSE ALL_FILES ${src_files} ${include_files})
 
 add_custom_target(
-        format
+        format-maga
         COMMAND clang-format
         -style=file
         -i

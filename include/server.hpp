@@ -1,7 +1,6 @@
 #pragma once
 
 #include <thread>
-
 #include <boost/asio.hpp>
 
 template <typename Connection> class Server {
@@ -15,8 +14,7 @@ private:
   boost::asio::ip::tcp::endpoint endpoint_;
   boost::asio::ip::tcp::acceptor acceptor_;
 
-  void handle_new_request(boost::system::error_code ec,
-                          shared_connection old_connection);
+  void handle_new_request();
 
 public:
   explicit Server(unsigned short port);
