@@ -1,6 +1,5 @@
 #pragma once
 
-#include "header.hpp"
 #include "mgparser.hpp"
 #include <istream>
 #include <memory>
@@ -14,7 +13,7 @@ public:
   std::weak_ptr<Connection> conn_;
   mg_parser_t<Parser *> *parser_;
   explicit Parser(std::shared_ptr<Connection> connection);
-  int parser_init(std::string&& req);
+  int parser_init(std::string &&req);
   int parser_resume();
 
 private:

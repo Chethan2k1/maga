@@ -1,25 +1,21 @@
 #pragma once
 
 #include <boost/asio.hpp>
-#include <cstddef>
-#include <cstdlib>
-#include <iostream>
 #include <istream>
 #include <memory>
-#include <ostream>
-#include <string>
 
-class Parser;
+class Parser; // forward declaration
 
 class Connection : public std::enable_shared_from_this<Connection> {
 private:
-  boost::asio::streambuf request_stream_;
+  boost::asio::streambuf buffer_;
   std::istream input_stream;
-  std::ostream output_stream;
 
   void read_left_over(std::string &req, size_t &bytes);
   template <typename Callback>
   void internal_read_body(std::string &req, size_t bytes, Callback call);
+  // response
+  void write_initial_resp(const int &status, const std::string &msg);
 
 public:
   boost::asio::ip::tcp::socket sock_;
@@ -33,6 +29,9 @@ public:
 
   template <typename Callback>
   void read_body(std::string &req, size_t bytes, Callback call);
+
+  // response
+  void write_response(const int &status, const std::string &msg);
 };
 
 // definations for templated functions
@@ -41,22 +40,20 @@ public:
 template <typename Callback>
 void Connection::internal_read_body(std::string &req, size_t bytes,
                                     Callback call) {
-  std::cout << bytes << " " << sock_.available() << std::endl;
   if (sock_.is_open()) {
     std::vector<char> buff_space(BUFFER_SIZE);
-    sock_.async_read_some(
-        boost::asio::buffer(buff_space.data(), BUFFER_SIZE),
-        [me = shared_from_this(), bytes, &req,
-         buff_space = std::move(buff_space),
-         call](const boost::system::error_code ec, const size_t bytes_read)
-         mutable {
-          req.append(buff_space.data(), bytes_read);
-          bytes -= bytes_read;
-          if (bytes > 0)
-            me->internal_read_body(req, bytes, call);
-          else
-            call();
-        });
+    sock_.async_read_some(boost::asio::buffer(buff_space.data(), BUFFER_SIZE),
+                          [me = shared_from_this(), bytes, &req,
+                           buff_space = std::move(buff_space),
+                           call](const boost::system::error_code ec,
+                                 const size_t bytes_read) mutable {
+                            req.append(buff_space.data(), bytes_read);
+                            bytes -= bytes_read;
+                            if (bytes > 0)
+                              me->internal_read_body(req, bytes, call);
+                            else
+                              call();
+                          });
   }
 }
 

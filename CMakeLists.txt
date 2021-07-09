@@ -9,14 +9,13 @@ set(include_files
     ${CMAKE_SOURCE_DIR}/include/connection.hpp
     ${CMAKE_SOURCE_DIR}/include/error.hpp
     ${CMAKE_SOURCE_DIR}/include/parser.hpp
-    ${CMAKE_SOURCE_DIR}/include/header.hpp
+    ${CMAKE_SOURCE_DIR}/include/response.hpp
 )
 
 set(src_files
     # ${CMAKE_SOURCE_DIR}/src/server.cpp
     ${CMAKE_SOURCE_DIR}/src/connection.cpp
     ${CMAKE_SOURCE_DIR}/src/parser.cpp
-    ${CMAKE_SOURCE_DIR}/src/header.cpp
 )
 
 add_definitions(-Wno-deprecated-declarations)

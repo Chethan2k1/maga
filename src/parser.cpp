@@ -1,14 +1,11 @@
 #include "parser.hpp"
 #include "connection.hpp"
-#include "header.hpp"
 #include "mgparser.hpp"
 #include <iostream>
 #include <memory>
 #include <string_view>
 
 using namespace std;
-
-extern const std::map<std::string, HeaderKey> r_header_map;
 
 static const size_t Parse2Size_t(string_view str) {
   size_t val = 0;
@@ -25,7 +22,7 @@ Parser::Parser(shared_ptr<Connection> connection)
     : conn_(connection), parser_(new mg_parser_t<Parser *>),
       settings_(new mg_settings_t<Parser *>) {}
 
-int Parser::parser_init(std::string&& req) {
+int Parser::parser_init(std::string &&req) {
   req_ = std::move(req);
   parser_->mg_settings_init(settings_);
 
@@ -35,16 +32,21 @@ int Parser::parser_init(std::string&& req) {
   parser_->sett->handle_header = parser::handle_header;
   parser_->sett->handle_body = parser::handle_body;
 
-  // should post here?
+  // parser_execute would be synchronous call since parsing is really fast
   mg_return_t err = parser_->mg_parser_execute(req_, this);
   if (err == mg_return_t::SUCCESS) {
     cout << "Succesfully Parsed!" << endl;
+    conn_.lock()->ioc_.dispatch(
+        [conn = conn_.lock()]() { conn->write_response(200, "OK"); });
     return 0;
   } else if (err == mg_return_t::PAUSE) {
     cout << "Paused" << endl;
     return 0;
   } else {
     cout << "Parser Error " << endl;
+    conn_.lock()->ioc_.dispatch([conn = conn_.lock()]() {
+      conn->write_response(500, "Internal Server Error");
+    });
     return err;
   }
 }
@@ -52,10 +54,15 @@ int Parser::parser_init(std::string&& req) {
 int Parser::parser_resume() {
   mg_return_t err = parser_->mg_parser_resume(req_, this);
   if (err == mg_return_t::SUCCESS) {
-    cout << "Succesfully Parsed!" << endl;
+    cout << "Succesfully Parsed! :)" << endl;
+    conn_.lock()->ioc_.dispatch(
+        [conn = conn_.lock()]() { conn->write_response(200, "OK"); });
     return 0;
   } else {
     cout << "Parser Error " << endl;
+    conn_.lock()->ioc_.dispatch([conn = conn_.lock()]() {
+      conn->write_response(500, "Internal Server Error");
+    });
     return err;
   }
 }
@@ -85,10 +92,8 @@ mg_return_t parser::handle_header(std::string_view field,
         .lock()
         ->ioc_.post([parser, conn = (parser->conn_).lock(),
                      bytes = Parse2Size_t(value)]() {
-          conn->read_body(parser->req_, bytes, [conn]() mutable {
-            cout << "Finished Reading Body " << endl;
-            conn->parser_->parser_resume();
-          });
+          conn->read_body(parser->req_, bytes,
+                          [conn]() mutable { conn->parser_->parser_resume(); });
         });
 
     return mg_return_t::PAUSE;

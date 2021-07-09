@@ -1,7 +1,7 @@
 #pragma once
 
-#include <thread>
 #include <boost/asio.hpp>
+#include <thread>
 
 template <typename Connection> class Server {
   using shared_connection = std::shared_ptr<Connection>;
