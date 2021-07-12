@@ -3,19 +3,22 @@
 #include <boost/asio.hpp>
 #include <istream>
 #include <memory>
+#include <sstream>
 
 class Parser; // forward declaration
 
 class Connection : public std::enable_shared_from_this<Connection> {
 private:
+  std::string root_dir;
   boost::asio::streambuf buffer_;
   std::istream input_stream;
+  std::stringstream ss;
 
-  void read_left_over(std::string &req, size_t &bytes);
+  void read_left_over(std::string &, size_t &);
   template <typename Callback>
-  void internal_read_body(std::string &req, size_t bytes, Callback call);
+  void internal_read_body(std::string &, size_t, Callback);
   // response
-  void write_initial_resp(const int &status, const std::string &msg);
+  void write_initial_resp(const int &, const std::string &);
 
 public:
   boost::asio::ip::tcp::socket sock_;
@@ -26,12 +29,15 @@ public:
   ~Connection();
 
   void start_operation();
+  void set_root_dir(const std::string &rd) { root_dir = rd; }
 
-  template <typename Callback>
-  void read_body(std::string &req, size_t bytes, Callback call);
+  template <typename Callback> void read_body(std::string &, size_t, Callback);
 
   // response
-  void write_response(const int &status, const std::string &msg);
+  inline bool is_resp_empty() { return (ss.str().empty()); };
+  void write_file(const std::string_view &);
+  void write_response(const int &, const std::string &);
+  void send_response();
 };
 
 // definations for templated functions

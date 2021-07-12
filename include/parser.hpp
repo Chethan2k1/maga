@@ -12,13 +12,13 @@ public:
   std::string req_;
   std::weak_ptr<Connection> conn_;
   mg_parser_t<Parser *> *parser_;
-  explicit Parser(std::shared_ptr<Connection> connection);
-  int parser_init(std::string &&req);
+  explicit Parser(std::shared_ptr<Connection>);
+  int parser_init(std::string &&);
   int parser_resume();
 
 private:
   mg_settings_t<Parser *> *settings_;
-  void header_value_handler(const std::string &header_val);
+  void header_value_handler(const std::string &);
 };
 
 namespace parser {

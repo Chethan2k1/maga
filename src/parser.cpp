@@ -37,7 +37,7 @@ int Parser::parser_init(std::string &&req) {
   if (err == mg_return_t::SUCCESS) {
     cout << "Succesfully Parsed!" << endl;
     conn_.lock()->ioc_.dispatch(
-        [conn = conn_.lock()]() { conn->write_response(200, "OK"); });
+        [conn = conn_.lock()]() { conn->send_response(); });
     return 0;
   } else if (err == mg_return_t::PAUSE) {
     cout << "Paused" << endl;
@@ -46,6 +46,7 @@ int Parser::parser_init(std::string &&req) {
     cout << "Parser Error " << endl;
     conn_.lock()->ioc_.dispatch([conn = conn_.lock()]() {
       conn->write_response(500, "Internal Server Error");
+      conn->send_response();
     });
     return err;
   }
@@ -55,31 +56,37 @@ int Parser::parser_resume() {
   mg_return_t err = parser_->mg_parser_resume(req_, this);
   if (err == mg_return_t::SUCCESS) {
     cout << "Succesfully Parsed! :)" << endl;
-    conn_.lock()->ioc_.dispatch(
-        [conn = conn_.lock()]() { conn->write_response(200, "OK"); });
+    conn_.lock()->ioc_.dispatch([conn = conn_.lock()]() {
+      conn->write_response(200, "OK");
+      conn->send_response();
+    });
     return 0;
   } else {
     cout << "Parser Error " << endl;
     conn_.lock()->ioc_.dispatch([conn = conn_.lock()]() {
-      conn->write_response(500, "Internal Server Error");
+      if (conn->is_resp_empty())
+        conn->write_response(500, "Internal Server Error");
+      conn->send_response();
     });
     return err;
   }
 }
 
-mg_return_t parser::handle_method(std::string_view method, Parser *conn) {
+mg_return_t parser::handle_method(std::string_view method, Parser *parser) {
   cout << "Method : " << method << endl;
   return mg_return_t::SUCCESS;
 }
 
 mg_return_t parser::handle_version(const int &major, const int &minor,
-                                   Parser *conn) {
+                                   Parser *parser) {
   cout << "Major : " << major << "Minor : " << minor << endl;
   return mg_return_t::SUCCESS;
 }
 
-mg_return_t parser::handle_url(std::string_view url, Parser *conn) {
+mg_return_t parser::handle_url(std::string_view url, Parser *parser) {
   cout << "Url : " << url << endl;
+  if (auto conn = parser->conn_.lock(); conn)
+    conn->ioc_.dispatch([conn, url]() { conn->write_file(url); });
   return mg_return_t::SUCCESS;
 }
 
@@ -102,7 +109,7 @@ mg_return_t parser::handle_header(std::string_view field,
   return mg_return_t::SUCCESS;
 }
 
-mg_return_t parser::handle_body(std::string_view body, Parser *conn) {
+mg_return_t parser::handle_body(std::string_view body, Parser *parser) {
   cout << "Body : " << body << endl;
   return mg_return_t::SUCCESS;
 }
