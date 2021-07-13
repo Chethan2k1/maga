@@ -9,7 +9,6 @@ class Parser; // forward declaration
 
 class Connection : public std::enable_shared_from_this<Connection> {
 private:
-  std::string root_dir;
   boost::asio::streambuf buffer_;
   std::istream input_stream;
   std::stringstream ss;
@@ -29,7 +28,6 @@ public:
   ~Connection();
 
   void start_operation();
-  void set_root_dir(const std::string &rd) { root_dir = rd; }
 
   template <typename Callback> void read_body(std::string &, size_t, Callback);
 

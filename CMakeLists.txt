@@ -9,7 +9,8 @@ set(include_files
     ${CMAKE_SOURCE_DIR}/include/connection.hpp
     ${CMAKE_SOURCE_DIR}/include/error.hpp
     ${CMAKE_SOURCE_DIR}/include/parser.hpp
-    ${CMAKE_SOURCE_DIR}/include/response.hpp
+    ${CMAKE_SOURCE_DIR}/include/config.hpp
+    ${CMAKE_SOURCE_DIR}/include/mimes.hpp
 )
 
 set(src_files

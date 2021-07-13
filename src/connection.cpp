@@ -1,5 +1,7 @@
 #include "connection.hpp"
+#include "config.hpp"
 #include "error.hpp"
+#include "mimes.hpp"
 #include "parser.hpp"
 
 #include <filesystem>
@@ -7,6 +9,7 @@
 #include <string_view>
 
 using namespace boost;
+extern const std::unordered_map<std::string, std::string> mime_types;
 
 Connection::Connection(boost::asio::io_context &context)
     : input_stream(&buffer_), sock_(context), ioc_(context) {}
@@ -53,8 +56,26 @@ void Connection::write_initial_resp(const int &status, const std::string &msg) {
 void Connection::write_file(const std::string_view &rpath) {
   using namespace std;
   using namespace std::filesystem;
-  path apath(root_dir);
-  apath += path(rpath);
+  std::string ext;
+  path apath(ROOT_DIR);
+  if (rpath == "/") {
+    apath += path("/index.html");
+    ext = "html";
+  } else {
+    apath += path(rpath);
+    int curr_ptr = rpath.length() - 1;
+    while (curr_ptr >= 0 && rpath[curr_ptr] != '.' && rpath[curr_ptr] != '/')
+      --curr_ptr;
+    if (curr_ptr > 0 && (curr_ptr + 1) < rpath.length() &&
+        rpath[curr_ptr] != '/')
+      ext = rpath.substr(curr_ptr + 1);
+  }
+
+  // if the ext determined doenst have any valid content-type
+  // return unsupported media type
+  if (mime_types.find(ext) == mime_types.end())
+    return write_initial_resp(415, "Unsupported Media Type");
+
   // path should exist and shoudn't be a directory
   if (!exists(apath))
     return write_initial_resp(404, "Not Found");
@@ -62,7 +83,7 @@ void Connection::write_file(const std::string_view &rpath) {
     return write_initial_resp(404, "Not Found");
   write_initial_resp(200, "OK");
   ifstream file_stream(apath, std::ios::in);
-  ss << "Content-Type: text/html\r\n";
+  ss << "Content-Type: " << mime_types.at(ext) << "\r\n";
   ss << "Content-Length:" << file_size(apath) << "\r\n\r\n";
   ss << file_stream.rdbuf();
   file_stream.close();

@@ -9,7 +9,6 @@ template <typename Connection> class Server {
 private:
   // server config
   const unsigned short port_;
-  std::string root_dir;
 
   std::thread io_thread_;
   boost::asio::io_context ioc_;
@@ -30,7 +29,6 @@ public:
   }
 
   void start();
-  void set_root_dir(const std::string &path);
 };
 
 #include "server.cpp"
